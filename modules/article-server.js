@@ -9,21 +9,16 @@ export default class ArticleServer {
         this.mdrend = new MarkdownRenderer()
         this.pagerend = pageRenderer
         this.mainview = 'main'
+        this.webPath = webPath
         webserver.html(new RegExp('/' + webPath + '/.*'), (req) => {
             let path = req.path.replace('/' + webPath + '/', '')
             if (!this.articleExists(path)) return 404
-            return this.pagerend.render(
-                this.mainview, 
-                {content: this.loadArticle(path), menu: this.menu.get(), addr: req.path}
-            )
+            return this.renderArticle(path)
         })
     }
 
     serveHomePage(article, webserver) {
-        webserver.html('/', (req) => this.pagerend.render(
-            this.mainview, 
-            {content: this.loadArticle(article), menu: this.menu.get(), addr: req.path}
-        ))
+        webserver.html('/', (req) => this.renderArticle(article))
     }
 
     loadArticle(article) {
@@ -32,6 +27,14 @@ export default class ArticleServer {
         content = {cont: content, title: title.title}
         return content
     }
+
+    renderArticle(article) {
+        return this.pagerend.render(
+            this.mainview,
+            {content: this.loadArticle(article), menu: this.menu.get(), addr: `/${this.webPath}/${article}`}
+        )
+    }
+
     articleExists(article) {
         return fs.existsSync(this.path + article + '.md')
     }
