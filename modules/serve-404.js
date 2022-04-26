@@ -1,10 +1,9 @@
 export default class Serve404 {
     constructor(webserver, articleserver, article = '404') {
-        let rnd404 = function(req, res){
-            articleserver.renderArticle(article).then(a => res.status(404).send(a))
+        let rnd404 = async function(code) {
+            if (code == 404) return await articleserver.renderArticle(article)
+            return code + " Error"
         }
-        webserver.app.get('*', rnd404)
-        webserver.app.get('*/*', rnd404)
-        webserver.app.get('*/*/*', rnd404)
+        webserver.set404renderer(rnd404)
     }
 }
