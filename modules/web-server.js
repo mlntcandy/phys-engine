@@ -31,7 +31,7 @@ export default class WebServer {
     html(path, func) {
         this.app.get(path, async (req, res) => {
             let html = await func(req)
-            if (typeof html == 'number') return res.status(html).send(Buffer.from(await this.render404(html)))
+            if (typeof html == 'number') html = await this.render404(html)
             res.set('Content-Type', 'text/html')
             res.send(Buffer.from(html))
         })
