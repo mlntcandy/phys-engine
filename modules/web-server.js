@@ -8,6 +8,7 @@ export default class WebServer {
         this.app = express()
         this.listening = false
         this.onListenCallback = () => {}
+        this.handleHttpError = () => {}
 
 
         for (let mw of middleware) {
@@ -31,7 +32,13 @@ export default class WebServer {
     html(path, func) {
         this.app.get(path, async (req, res) => {
             let html = await func(req)
-            if (typeof html == 'number') return res.sendStatus(html)
+            if (typeof html == 'number') {
+                let mw = await this.handleHttpError(html)
+                if (mw) {
+                    res.status(html)
+                    html = mw
+                }
+            }
             res.set('Content-Type', 'text/html')
             res.send(Buffer.from(html))
         })
@@ -72,6 +79,9 @@ export default class WebServer {
                 logger.log(`WebServer middleware hot-loaded.`);
             })
         }
+    }
+    serveHttpError(cb) {
+        this.handleHttpError = cb
     }
 
 }
