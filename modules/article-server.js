@@ -3,10 +3,10 @@ import MarkdownRenderer from "./md-renderer.js"
 import fs from "fs"
 
 export default class ArticleServer {
-    constructor(path, webPath, pageRenderer, webserver) {
+    constructor(path, webPath, pageRenderer, webserver, markdownPlugins = []) {
         this.path = path
         this.menu = new MenuManager('./resources/menu.json')
-        this.mdrend = new MarkdownRenderer()
+        this.mdrend = new MarkdownRenderer(markdownPlugins)
         this.pagerend = pageRenderer
         this.mainview = 'main'
         this.webPath = webPath
