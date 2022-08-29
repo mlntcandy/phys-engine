@@ -11,8 +11,8 @@
     "type": "git",
     "url": "git+https://github.com/mlntcandy/phys-engine.git"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Alexander Andryushin",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/mlntcandy/phys-engine/issues"
   },

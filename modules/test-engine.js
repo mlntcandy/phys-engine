@@ -1,5 +1,6 @@
 import fs from 'fs'
 import MenuManager from './menu-manager.js'
+import SendMail from './send-mail.js'
 
 /*
 
@@ -10,9 +11,10 @@ import MenuManager from './menu-manager.js'
 */
 
 export default class TestEngine {
-    constructor(webserver, pagerenderer) {
+    constructor(webserver, pagerenderer, emailCfg) {
         this.webserver = webserver
         this.pagerenderer = pagerenderer
+        this.emailCfg = emailCfg
         
         this.menu = new MenuManager('./resources/menu.json')
 
@@ -22,23 +24,18 @@ export default class TestEngine {
         
         this.webserver.html(/\/tests\/.+/, async (req, res) => { //Конкретный тест
                 let path = req.path.replace('/tests/', '');
-                if (this.testExists(path)) {
-                    return this.pagerenderer.render('main', {content: await this.loadTest(this.getTestList()[path].test), menu: this.menu.get(), addr: req.path});
-                } else {
-                    return 404
-                }
-                
+                if (!this.testExists(path)) return 404
+                return this.pagerenderer.render('main', {content: await this.loadTest(this.getTestList()[path].test), menu: this.menu.get(), addr: req.path});
         })
+        this.initValidator()
     }
 
     initValidator() {
-        this.webserver.app.post('/validatetest', async (req, res) => {  //logic for validating tests and sending results
+        const handler = async (req, res) => {  //logic for validating tests and sending results
             var data = req.body
-            var test = getTestList()[data.testname.replace('/tests/', '')].test
-            var isEmail = false
-            if (data.email) {
-                isEmail = true
-            }
+            var test = this.getTestList()[data.testname.replace('/tests/', '')].test
+            var isEmail = !!data.email
+           
             var outobj = {
                 error: '',
                 questions: {},
@@ -99,7 +96,7 @@ export default class TestEngine {
                             right: test.questions[ans].right
                         }
                     }
-                    if (stringComparator(test.questions[ans].right, data[ans])) {
+                    if (this.stringComparator(test.questions[ans].right, data[ans])) {
                         outobj.questions[ans] = true
                         outobj.result.r++
                     } else {
@@ -131,10 +128,23 @@ export default class TestEngine {
                 }
                 outobj.testtitle = test.name
                 console.log(outobj)
-                let htmlEmail = await ejs.renderFile('./views/email.ejs', {data: outobj})
-                await sendMail(data.email.email, `Ответы на тест ${outobj.testtitle} - ${outobj.email.name} (${outobj.email.group})`, htmlEmail)
+                let htmlEmail = await this.pagerenderer.render('email', {data: outobj})
+                await SendMail({
+                    ...this.emailCfg,
+                    recipient: data.email.email,
+                    subject: `Ответы на тест ${outobj.testtitle} - ${outobj.email.name} (${outobj.email.group})`
+                }, htmlEmail)
             }
             res.json(outobj)
+        }
+        this.webserver.app.post('/validatetest', async (req, res) => {
+            try {
+                await handler(req, res)
+            } catch (e) {
+                console.error(e)
+                req.sendStatus(500)
+            }
+
         })
     }
     getTestList() {
